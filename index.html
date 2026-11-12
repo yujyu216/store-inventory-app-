@@ -1,0 +1,198 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<title>店舗在庫一覧</title>
+<style>
+:root{--beige:#faf6ed;--beige2:#f3ead6;--card:#fffdf7;--green:#7a9b6d;--green-d:#5c7d52;--green-l:#e6efe0;--yellow:#f2d57e;--yellow-l:#fdf3d0;--brown:#6b5d4f;--muted:#9a8f7d;--line:#e7dcc3;--red:#c07a6a}
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+body{margin:0;font-family:-apple-system,"Hiragino Sans","Hiragino Kaku Gothic ProN",sans-serif;background:var(--beige);color:var(--brown);font-size:15px;line-height:1.5}
+header{background:linear-gradient(135deg,#a8c3a0,#7a9b6d);color:#fff;padding:20px 16px 16px;padding-top:calc(20px + env(safe-area-inset-top))}
+header h1{margin:0;font-size:22px;letter-spacing:.04em}
+header p{margin:4px 0 0;font-size:13px;opacity:.92}
+.wrap{max-width:720px;margin:0 auto;padding:14px 12px 40px}
+.toolbar{display:flex;gap:8px;margin-bottom:10px}
+.toolbar input[type=search]{flex:1;padding:12px;border:1.5px solid var(--line);border-radius:12px;background:#fff;font-size:16px}
+.btn{border:none;border-radius:12px;padding:12px 14px;font-size:15px;font-weight:700;cursor:pointer}
+.btn-main{background:var(--yellow);color:#6b5510;box-shadow:0 2px 0 #dfbd55}
+.btn-green{background:var(--green);color:#fff}
+.btn-ghost{background:#fff;border:1.5px solid var(--line);color:var(--brown)}
+.btn-sm{padding:7px 10px;font-size:13px;border-radius:9px}
+.stats{display:flex;gap:8px;margin-bottom:12px}
+.stat{flex:1;background:var(--card);border:1.5px solid var(--line);border-radius:12px;padding:8px;text-align:center}
+.stat b{display:block;font-size:20px;color:var(--green-d)}
+.stat span{font-size:11px;color:var(--muted)}
+</style>
+</head>
+<body>
+<style>
+.store{background:var(--card);border:1.5px solid var(--line);border-radius:16px;padding:14px;margin-bottom:12px;box-shadow:0 1px 3px rgba(107,93,79,.06)}
+.store-head{display:flex;align-items:center;gap:8px}
+.store-head h2{margin:0;font-size:18px;flex:1;word-break:break-all}
+.total-badge{background:var(--yellow-l);border:1px solid var(--yellow);border-radius:999px;padding:2px 10px;font-size:12px;font-weight:700;white-space:nowrap}
+.cat{margin-top:10px}
+.cat-title{font-size:12px;font-weight:700;color:var(--green-d);letter-spacing:.06em;margin-bottom:4px}
+.chips{display:flex;flex-wrap:wrap;gap:6px}
+.chip{background:var(--green-l);border-radius:999px;padding:3px 10px;font-size:13px}
+.chip b{color:var(--green-d)}
+.chip.none{background:#f1ece0;color:var(--muted)}
+.memo{font-size:13px;color:var(--muted);background:var(--beige);border-radius:8px;padding:6px 8px;margin-top:8px;white-space:pre-wrap}
+.store-actions{display:flex;gap:8px;margin-top:12px;flex-wrap:wrap}
+.editor{border-top:1.5px dashed var(--line);margin-top:12px;padding-top:12px;display:none}
+.editor.open{display:block}
+.ed-cat{margin-bottom:14px}
+.ed-cat h3{margin:0 0 6px;font-size:14px;color:var(--green-d)}
+.item-row{display:flex;align-items:center;gap:8px;padding:7px 8px;border-radius:10px;background:var(--beige);margin-bottom:6px}
+.item-row.on{background:var(--yellow-l)}
+.item-row .name{flex:1;font-size:14px;word-break:break-all}
+.stepper{display:flex;align-items:center;gap:4px}
+.stepper button{width:34px;height:34px;border-radius:50%;border:1.5px solid var(--line);background:#fff;font-size:18px;font-weight:700;color:var(--green-d);cursor:pointer;line-height:1}
+.stepper input{width:44px;text-align:center;padding:7px 2px;border:1.5px solid var(--line);border-radius:8px;font-size:16px;background:#fff}
+textarea.memo-in{width:100%;padding:10px;border:1.5px solid var(--line);border-radius:10px;font-size:15px;background:#fff;min-height:56px}
+.empty{text-align:center;color:var(--muted);padding:28px 12px;background:var(--card);border:1.5px dashed var(--line);border-radius:16px}
+.master{background:var(--card);border:1.5px solid var(--line);border-radius:16px;padding:14px;margin-top:18px}
+.master h2{margin:0 0 4px;font-size:17px}
+.master p{margin:0 0 10px;font-size:12px;color:var(--muted)}
+.m-row{display:flex;gap:6px;align-items:center;margin-bottom:6px}
+.m-row .m-name{flex:1;background:var(--beige);border-radius:8px;padding:7px 10px;font-size:14px;word-break:break-all}
+.del{border:none;background:#fbeae6;color:var(--red);border-radius:8px;padding:7px 10px;font-weight:700;cursor:pointer}
+.add-row{display:flex;gap:6px;margin:6px 0 14px}
+.add-row input{flex:1;padding:10px;border:1.5px solid var(--line);border-radius:10px;font-size:16px;background:#fff;min-width:0}
+.note{font-size:12px;color:var(--muted);text-align:center;margin-top:16px}
+</style>
+<header><h1>🌿 店舗在庫一覧</h1><p>店舗ごとに、どの用品があるか確認・入力できます</p></header>
+<div class="wrap">
+  <div class="toolbar">
+    <input type="search" id="q" placeholder="店舗名・用品名でさがす">
+    <button class="btn btn-main" id="addStoreBtn">＋ 店舗</button>
+  </div>
+  <div class="stats">
+    <div class="stat"><b id="stStores">0</b><span>店舗数</span></div>
+    <div class="stat"><b id="stItems">0</b><span>在庫アイテム総数</span></div>
+    <div class="stat"><b id="stKinds">0</b><span>在庫のある種類</span></div>
+  </div>
+  <div id="storeList"></div>
+  <div class="master">
+    <h2>⚙️ 用品リストの編集</h2>
+    <p>カートの廃盤品の追加など、選べる用品はここで追加・削除できます。店舗が変わったときは上の「＋ 店舗」から追加、店舗カードの「名前変更」「削除」から編集できます。</p>
+    <div id="masterArea"></div>
+  </div>
+  <p class="note">データはこのiPhone（ブラウザ）の中に自動保存されます。<br>機種変更やブラウザのデータ削除では引き継がれません。</p>
+</div>
+<script>
+const KEY='storeInventoryApp_v1';
+const CATS=[
+ {id:'toys',label:'🧸 おもちゃ'},
+ {id:'harness',label:'🎽 ハーネス'},
+ {id:'options',label:'🧩 カートオプション'},
+ {id:'carts',label:'🛒 カート'}
+];
+const DEFAULT_MASTERS={
+ toys:['ボール','ぬいぐるみ','ロープおもちゃ','知育おもちゃ'],
+ harness:['ハーネス S','ハーネス M','ハーネス L'],
+ options:[],
+ carts:['ミリミリキャリー','ミリミリオートN','ミリミリ','ルルテイル','free to go2','lite','agile2','toggle','king','queen','kross']
+};
+let data=load();
+function load(){
+ try{const d=JSON.parse(localStorage.getItem(KEY));if(d&&d.masters&&d.stores){
+  const OLD_OPTIONS=['レインカバー','クッション','ドリンクホルダー','虫よけネット'];
+  if(Array.isArray(d.masters.options)&&d.masters.options.length===OLD_OPTIONS.length&&OLD_OPTIONS.every((v,i)=>d.masters.options[i]===v)){
+   d.masters.options=[];if(Array.isArray(d.stores))d.stores.forEach(s=>{if(s.inv)s.inv.options={};});
+   try{localStorage.setItem(KEY,JSON.stringify(d));}catch(e){}
+  }
+  return d;
+ }}catch(e){}
+ return {masters:JSON.parse(JSON.stringify(DEFAULT_MASTERS)),stores:[]};
+}
+function save(){localStorage.setItem(KEY,JSON.stringify(data));}
+function uid(){return Date.now().toString(36)+Math.random().toString(36).slice(2,7);}
+function esc(s){return String(s??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));}
+function emptyInv(){return {toys:{},harness:{},options:{},carts:{},memo:''};}
+function storeTotal(s){let t=0;CATS.forEach(c=>{Object.values(s.inv[c.id]||{}).forEach(v=>t+=(+v||0));});return t;}
+function storeKinds(s){let t=0;CATS.forEach(c=>{Object.values(s.inv[c.id]||{}).forEach(v=>{if(+v>0)t++;});});return t;}
+let openEditors=new Set();
+let query='';
+function render(){
+ const list=document.getElementById('storeList');
+ document.getElementById('stStores').textContent=data.stores.length;
+ document.getElementById('stItems').textContent=data.stores.reduce((a,s)=>a+storeTotal(s),0);
+ document.getElementById('stKinds').textContent=data.stores.reduce((a,s)=>a+storeKinds(s),0);
+ const q=query.trim().toLowerCase();
+ const shown=data.stores.filter(s=>{
+   if(!q)return true;
+   if(s.name.toLowerCase().includes(q))return true;
+   return CATS.some(c=>data.masters[c.id].some(name=>(s.inv[c.id][name]>0)&&name.toLowerCase().includes(q)));
+ });
+ if(!data.stores.length){
+   list.innerHTML='<div class="empty">まだ店舗がありません。<br>右上の「＋ 店舗」から最初の店舗を追加してください。</div>';
+ }else if(!shown.length){
+   list.innerHTML='<div class="empty">検索に合う店舗がありません。</div>';
+ }else{
+   list.innerHTML=shown.map(s=>storeHTML(s)).join('');
+ }
+ renderMasters();
+}
+function chipsFor(s,catId){
+ const items=data.masters[catId].filter(n=>(s.inv[catId][n]||0)>0);
+ if(!items.length)return '<span class="chip none">なし</span>';
+ return items.map(n=>`<span class="chip">${esc(n)} <b>×${s.inv[catId][n]}</b></span>`).join('');
+}
+function storeHTML(s){
+ const ed=openEditors.has(s.id);
+ let cats=CATS.map(c=>`<div class="cat"><div class="cat-title">${c.label}</div><div class="chips">${chipsFor(s,c.id)}</div></div>`).join('');
+ let editor='';
+ if(ed){
+   editor='<div class="editor open">'+CATS.map(c=>`
+     <div class="ed-cat"><h3>${c.label}</h3>
+     ${data.masters[c.id].length?data.masters[c.id].map(n=>{
+       const v=s.inv[c.id][n]||0;
+       return `<div class="item-row ${v>0?'on':''}"><span class="name">${esc(n)}</span>
+       <span class="stepper"><button data-act="dec" data-store="${s.id}" data-cat="${c.id}" data-name="${esc(n)}">−</button>
+       <input type="number" min="0" inputmode="numeric" value="${v}" data-store="${s.id}" data-cat="${c.id}" data-name="${esc(n)}" class="qty">
+       <button data-act="inc" data-store="${s.id}" data-cat="${c.id}" data-name="${esc(n)}">＋</button></span></div>`;
+     }).join(''):'<div style="font-size:13px;color:var(--muted)">リストが空です。下の「用品リストの編集」から追加してください。</div>'}
+     </div>`).join('')
+     +'<div class="ed-cat"><h3>📝 メモ</h3><textarea class="memo-in" data-store="'+s.id+'" placeholder="例：カートは倉庫側に保管">'+esc(s.inv.memo||'')+'</textarea></div></div>';
+ }
+ return `<div class="store"><div class="store-head"><h2>${esc(s.name)}</h2><span class="total-badge">合計 ${storeTotal(s)} 点</span></div>
+ ${cats}${s.inv.memo?`<div class="memo">📝 ${esc(s.inv.memo)}</div>`:''}
+ <div class="store-actions">
+   <button class="btn btn-green btn-sm" data-act="toggle" data-store="${s.id}">${ed?'閉じる':'✏️ 在庫を入力・編集'}</button>
+   <button class="btn btn-ghost btn-sm" data-act="rename" data-store="${s.id}">名前変更</button>
+   <button class="btn btn-ghost btn-sm" data-act="delstore" data-store="${s.id}">削除</button>
+ </div>${editor}</div>`;
+}
+function renderMasters(){
+ document.getElementById('masterArea').innerHTML=CATS.map(c=>`
+  <div class="ed-cat"><h3 style="margin:0 0 6px;font-size:14px;color:var(--green-d)">${c.label}</h3>
+  ${data.masters[c.id].map(n=>`<div class="m-row"><span class="m-name">${esc(n)}</span><button class="del" data-act="delmaster" data-cat="${c.id}" data-name="${esc(n)}">削除</button></div>`).join('')||'<div style="font-size:13px;color:var(--muted)">（なし）</div>'}
+  <div class="add-row"><input placeholder="新しい用品名（例：廃盤カート名）" id="add-${c.id}"><button class="btn btn-green btn-sm" data-act="addmaster" data-cat="${c.id}">追加</button></div></div>`).join('');
+}
+document.getElementById('q').addEventListener('input',e=>{query=e.target.value;render();});
+document.getElementById('addStoreBtn').addEventListener('click',()=>{
+ const name=prompt('店舗名を入力してください');if(!name||!name.trim())return;
+ const s={id:uid(),name:name.trim(),inv:emptyInv()};data.stores.push(s);openEditors.add(s.id);save();render();
+ window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
+});
+document.addEventListener('click',e=>{
+ const b=e.target.closest('[data-act]');if(!b)return;
+ const act=b.dataset.act,sid=b.dataset.store,cat=b.dataset.cat,name=b.dataset.name;
+ const store=data.stores.find(s=>s.id===sid);
+ if(act==='toggle'){openEditors.has(sid)?openEditors.delete(sid):openEditors.add(sid);render();}
+ if(act==='rename'&&store){const n=prompt('店舗名を変更',store.name);if(n&&n.trim()){store.name=n.trim();save();render();}}
+ if(act==='delstore'&&store){if(confirm('「'+store.name+'」を削除しますか？在庫データも消えます。')){data.stores=data.stores.filter(s=>s.id!==sid);save();render();}}
+ if((act==='inc'||act==='dec')&&store){const cur=store.inv[cat][name]||0;store.inv[cat][name]=act==='inc'?cur+1:Math.max(0,cur-1);if(store.inv[cat][name]===0)delete store.inv[cat][name];save();render();}
+ if(act==='delmaster'){if(confirm('「'+name+'」を用品リストから削除しますか？各店舗の在庫からも消えます。')){data.masters[cat]=data.masters[cat].filter(n=>n!==name);data.stores.forEach(s=>delete s.inv[cat][name]);save();render();}}
+ if(act==='addmaster'){const inp=document.getElementById('add-'+cat);const v=(inp.value||'').trim();if(!v)return;if(data.masters[cat].includes(v)){alert('すでにあります');return;}data.masters[cat].push(v);save();render();}
+});
+document.addEventListener('change',e=>{
+ if(e.target.classList.contains('qty')){const s=data.stores.find(x=>x.id===e.target.dataset.store);if(!s)return;let v=parseInt(e.target.value,10);if(isNaN(v)||v<0)v=0;const cat=e.target.dataset.cat,name=e.target.dataset.name;if(v===0)delete s.inv[cat][name];else s.inv[cat][name]=v;save();render();}
+ if(e.target.classList.contains('memo-in')){const s=data.stores.find(x=>x.id===e.target.dataset.store);if(s){s.inv.memo=e.target.value;save();render();}}
+});
+render();
+</script>
+</body>
+</html>
