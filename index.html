@@ -79,6 +79,16 @@ textarea.memo-in{width:100%;padding:10px;border:1.5px solid var(--line);border-r
     <p>カートの廃盤品の追加など、選べる用品はここで追加・削除できます。店舗が変わったときは上の「＋ 店舗」から追加、店舗カードの「名前変更」「削除」から編集できます。</p>
     <div id="masterArea"></div>
   </div>
+  <div class="master">
+    <h2>💾 データの保存・復元（バックアップ）</h2>
+    <p>今日入れた在庫データをファイルに保存しておけます。機種変更やブラウザのデータ削除の前に保存しておくと、復元できます。</p>
+    <div style="display:flex;gap:8px;flex-wrap:wrap">
+      <button class="btn btn-green" id="exportBtn">バックアップを保存</button>
+      <button class="btn btn-ghost" id="importBtn">バックアップから復元</button>
+    </div>
+    <input type="file" id="importFile" accept="application/json,.json" style="display:none">
+    <p style="margin:10px 0 0">保存したファイルは「ファイル」アプリに残ります。復元すると、今の在庫データはファイルの中身で置き換わります。</p>
+  </div>
   <p class="note">データはこのiPhone（ブラウザ）の中に自動保存されます。<br>機種変更やブラウザのデータ削除では引き継がれません。</p>
 </div>
 <script>
@@ -191,6 +201,30 @@ document.addEventListener('click',e=>{
 document.addEventListener('change',e=>{
  if(e.target.classList.contains('qty')){const s=data.stores.find(x=>x.id===e.target.dataset.store);if(!s)return;let v=parseInt(e.target.value,10);if(isNaN(v)||v<0)v=0;const cat=e.target.dataset.cat,name=e.target.dataset.name;if(v===0)delete s.inv[cat][name];else s.inv[cat][name]=v;save();render();}
  if(e.target.classList.contains('memo-in')){const s=data.stores.find(x=>x.id===e.target.dataset.store);if(s){s.inv.memo=e.target.value;save();render();}}
+});
+document.getElementById('exportBtn').addEventListener('click',()=>{
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  const d=new Date(),p=n=>String(n).padStart(2,'0');
+  a.href=URL.createObjectURL(blob);
+  a.download='store-inventory-'+d.getFullYear()+p(d.getMonth()+1)+p(d.getDate())+'.json';
+  document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(a.href),5000);
+});
+document.getElementById('importBtn').addEventListener('click',()=>document.getElementById('importFile').click());
+document.getElementById('importFile').addEventListener('change',e=>{
+  const f=e.target.files&&e.target.files[0];if(!f)return;
+  const r=new FileReader();
+  r.onload=()=>{
+    try{
+      const d=JSON.parse(r.result);
+      if(!d||!d.masters||!Array.isArray(d.stores))throw new Error('bad');
+      if(!confirm('今の在庫データを、バックアップファイルの中身で置き換えますか？'))return;
+      data=d;openEditors=new Set();save();render();alert('復元しました。');
+    }catch(err){alert('このファイルは復元できませんでした。バックアップ用のJSONファイルを選んでください。');}
+    e.target.value='';
+  };
+  r.readAsText(f);
 });
 render();
 </script>
