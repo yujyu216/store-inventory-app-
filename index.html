@@ -141,6 +141,7 @@ function render(){
    if(s.name.toLowerCase().includes(q))return true;
    return CATS.some(c=>data.masters[c.id].some(name=>(s.inv[c.id][name]>0)&&name.toLowerCase().includes(q)));
  });
+ shown.sort((a,b)=>a.name.localeCompare(b.name,'ja'));
  if(!data.stores.length){
    list.innerHTML='<div class="empty">まだ店舗がありません。<br>右上の「＋ 店舗」から最初の店舗を追加してください。</div>';
  }else if(!shown.length){
