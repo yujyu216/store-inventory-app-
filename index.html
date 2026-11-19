@@ -15,6 +15,8 @@ header p{margin:4px 0 0;font-size:13px;opacity:.92}
 .wrap{max-width:720px;margin:0 auto;padding:14px 12px 40px}
 .toolbar{display:flex;gap:8px;margin-bottom:10px}
 .toolbar input[type=search]{flex:1;padding:12px;border:1.5px solid var(--line);border-radius:12px;background:#fff;font-size:16px}
+.sort-row{display:flex;justify-content:flex-end;align-items:center;gap:8px;margin-bottom:10px}
+.sort-note{font-size:12px;color:var(--muted)}
 .btn{border:none;border-radius:12px;padding:12px 14px;font-size:15px;font-weight:700;cursor:pointer}
 .btn-main{background:var(--yellow);color:#6b5510;box-shadow:0 2px 0 #dfbd55}
 .btn-green{background:var(--green);color:#fff}
@@ -68,6 +70,10 @@ textarea.memo-in{width:100%;padding:10px;border:1.5px solid var(--line);border-r
   <div class="toolbar">
     <input type="search" id="q" placeholder="店舗名・用品名でさがす">
     <button class="btn btn-main" id="addStoreBtn">＋ 店舗</button>
+  </div>
+  <div class="sort-row">
+    <span class="sort-note">漢字の店名は、追加・名前変更のときに入力した よみがな で並びます</span>
+    <button class="btn btn-ghost btn-sm" id="sortBtn">🔤 あいうえお順</button>
   </div>
   <div class="stats">
     <div class="stat"><b id="stStores">0</b><span>店舗数</span></div>
@@ -129,19 +135,36 @@ const CKEY='storeInventoryApp_collapsed_v1';
 let collapsedStores=new Set();
 try{const c=JSON.parse(localStorage.getItem(CKEY));if(Array.isArray(c))collapsedStores=new Set(c);}catch(e){}
 function saveCollapsed(){try{localStorage.setItem(CKEY,JSON.stringify([...collapsedStores]));}catch(e){}}
+/* あいうえお順の並び替え：漢字の店名は localeCompare だけでは読み順にならないため、
+   店舗ごとに入力した「よみがな」を並び替えのキーに使う。よみがなが無い店舗は店名そのものを使う。 */
+const SKEY='storeInventoryApp_sort_v1';
+let sortMode='aiueo';
+try{const m=localStorage.getItem(SKEY);if(m==='added'||m==='aiueo')sortMode=m;}catch(e){}
+function saveSortMode(){try{localStorage.setItem(SKEY,sortMode);}catch(e){}}
+function kataToHira(s){return String(s||'').replace(/[\u30A1-\u30F6]/g,c=>String.fromCharCode(c.charCodeAt(0)-0x60));}
+function hasKanji(s){return /[\u4E00-\u9FAF]/.test(s||'');}
+function yomiKey(s){
+ let y=(s.yomi||'').trim();
+ if(!y)y=s.name||'';
+ y=kataToHira(y);
+ y=y.replace(/[\s　・･()（）「」『』、。.,\/\\]+/g,'');
+ return y;
+}
+function updateSortBtn(){const b=document.getElementById('sortBtn');if(b)b.textContent=sortMode==='aiueo'?'🔤 あいうえお順':'🕒 登録した順';}
 let query='';
 function render(){
  const list=document.getElementById('storeList');
  document.getElementById('stStores').textContent=data.stores.length;
  document.getElementById('stItems').textContent=data.stores.reduce((a,s)=>a+storeTotal(s),0);
  document.getElementById('stKinds').textContent=data.stores.reduce((a,s)=>a+storeKinds(s),0);
+ updateSortBtn();
  const q=query.trim().toLowerCase();
  const shown=data.stores.filter(s=>{
    if(!q)return true;
    if(s.name.toLowerCase().includes(q))return true;
    return CATS.some(c=>data.masters[c.id].some(name=>(s.inv[c.id][name]>0)&&name.toLowerCase().includes(q)));
  });
- shown.sort((a,b)=>a.name.localeCompare(b.name,'ja'));
+ if(sortMode==='aiueo')shown.sort((a,b)=>{const k=yomiKey(a).localeCompare(yomiKey(b),'ja');return k!==0?k:a.name.localeCompare(b.name,'ja');});
  if(!data.stores.length){
    list.innerHTML='<div class="empty">まだ店舗がありません。<br>右上の「＋ 店舗」から最初の店舗を追加してください。</div>';
  }else if(!shown.length){
@@ -190,9 +213,15 @@ function renderMasters(){
   <div class="add-row"><input placeholder="新しい用品名（例：廃盤カート名）" id="add-${c.id}"><button class="btn btn-green btn-sm" data-act="addmaster" data-cat="${c.id}">追加</button></div></div>`).join('');
 }
 document.getElementById('q').addEventListener('input',e=>{query=e.target.value;render();});
+document.getElementById('sortBtn').addEventListener('click',()=>{sortMode=sortMode==='aiueo'?'added':'aiueo';saveSortMode();render();});
 document.getElementById('addStoreBtn').addEventListener('click',()=>{
  const name=prompt('店舗名を入力してください');if(!name||!name.trim())return;
- const s={id:uid(),name:name.trim(),inv:emptyInv()};data.stores.push(s);openEditors.add(s.id);save();render();
+ let yomi='';
+ if(hasKanji(name.trim())){
+   const y=prompt('「'+name.trim()+'」の よみがなをひらがなで入力してください。あいうえお順に並べるときに使います。');
+   if(y&&y.trim())yomi=y.trim();
+ }
+ const s={id:uid(),name:name.trim(),yomi:yomi,inv:emptyInv()};data.stores.push(s);openEditors.add(s.id);save();render();
  window.scrollTo({top:document.body.scrollHeight,behavior:'smooth'});
 });
 document.addEventListener('click',e=>{
@@ -201,7 +230,7 @@ document.addEventListener('click',e=>{
  const store=data.stores.find(s=>s.id===sid);
  if(act==='collapse'){collapsedStores.has(sid)?collapsedStores.delete(sid):collapsedStores.add(sid);saveCollapsed();render();}
  if(act==='toggle'){openEditors.has(sid)?openEditors.delete(sid):openEditors.add(sid);render();}
- if(act==='rename'&&store){const n=prompt('店舗名を変更',store.name);if(n&&n.trim()){store.name=n.trim();save();render();}}
+ if(act==='rename'&&store){const n=prompt('店舗名を変更',store.name);if(n&&n.trim()){store.name=n.trim();if(hasKanji(store.name)){const y=prompt('「'+store.name+'」の よみがなをひらがなで入力してください。あいうえお順に並べるときに使います。',store.yomi||'');if(y!==null)store.yomi=(y||'').trim();}else{store.yomi='';}save();render();}}
  if(act==='delstore'&&store){if(confirm('「'+store.name+'」を削除しますか？在庫データも消えます。')){data.stores=data.stores.filter(s=>s.id!==sid);collapsedStores.delete(sid);saveCollapsed();save();render();}}
  if((act==='inc'||act==='dec')&&store){const cur=store.inv[cat][name]||0;store.inv[cat][name]=act==='inc'?cur+1:Math.max(0,cur-1);if(store.inv[cat][name]===0)delete store.inv[cat][name];save();render();}
  if(act==='delmaster'){if(confirm('「'+name+'」を用品リストから削除しますか？各店舗の在庫からも消えます。')){data.masters[cat]=data.masters[cat].filter(n=>n!==name);data.stores.forEach(s=>delete s.inv[cat][name]);save();render();}}
